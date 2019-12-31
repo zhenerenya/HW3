@@ -1,0 +1,316 @@
+#define _CRT_SECURE_NO_WARNINGS
+#pragma warning (disable:6001)
+#include <string>
+#include <iostream>
+#include <stack>
+#include <queue>
+#include <string.h>
+#include <list>
+#include <math.h>
+struct Symbols
+{
+	double val;
+	char oper;
+};
+using namespace std;
+
+int Rang(char a)
+{
+	if (a == '+' || a == '-') return 1;
+	if (a == '*' || a == '/') return 2;
+	if (a == 's' || a == 'e' || a == 'c' || a == 'C' || a == 'T') return 3;
+
+	else return 0;
+}
+
+int serchnum(char* a, int& i)
+{
+	int b = 0;
+	int n = 0;
+	for (int j = 0; a[j + i] <= '9' && a[j + i] >= '0'; j++)
+	{
+		b = b * 10 + (a[j + i] - 48);
+	}
+	return b;
+}
+
+int countnum(int b)
+{
+	int n = 0;
+	while (b)
+	{
+		b = (b - b % 10) / 10;
+		n++;
+	}
+	return n;
+}
+
+int main()
+{
+
+	stack<Symbols>Stack;
+	queue<Symbols>Queue;
+	
+	double x;
+	Symbols p;
+	string equation;
+
+	cout << "Write equation." << endl;
+	cin >> equation;
+	char* eq = new char[equation.length() + 1];
+	strcpy(eq, equation.c_str());
+	//если в строке встречается х, то принимаем его значение
+	for (int i = 0; i < strlen(eq); i++)
+	{
+		if (eq[i] == 'x') {
+			cout << "Write x. ";
+			cin >> x;
+			cout << endl;
+			break;
+		}
+	}
+	int fl = 0;//0 - знак операции, 1 - знак числа
+	for (int i = 0; i < strlen(eq); i++)
+	{
+		
+		//операции
+		if (eq[i] == '\0') break; //конец выражения
+		if (eq[i] == '*' || eq[i] == '/' || eq[i] == '+' || (eq[i] == '-' && !fl))
+		{
+			while (1)
+			{
+				int rang = 0;
+				if (Stack.size() > 0) rang = Rang(Stack.top().oper);
+				if (rang < Rang(eq[i]) || Stack.size() == 0)
+				{
+					p.oper = eq[i];
+					Stack.push(p); //операция в стек
+					break;
+				}
+				//в очередь операции с большим или равным приоритетом
+				Queue.push(Stack.top());
+				Stack.pop(); //удаляем операцию из стека
+			}
+			fl = 1;
+			continue;
+		}
+		
+		//числа
+		bool mi =false;
+		if (eq[i] == '-' && (fl==1))
+		{
+			mi = true;
+			i++;
+		}
+		if (eq[i] <= '9' && eq[i] >= '0')
+		{
+
+			p.val = serchnum(eq, i);
+			i += countnum(p.val) - 1;
+
+			if (eq[i + 1] == '.' || eq[i + 1] == ',')
+			{
+
+				i = i + 2;
+				int l = serchnum(eq, i);
+				int a = countnum(serchnum(eq, i));
+
+				p.val = p.val + l / (pow(10, a)); //дробная часть
+				i += a-1;
+
+			}
+
+			if (mi)
+			{
+				p.val = -1 * p.val;
+				fl = 0;
+				mi =false;
+			}
+			p.oper = 0;
+			Queue.push(p);
+		}
+			
+		//скобки
+		if (eq[i] == '(')
+		{
+			p.oper = eq[i];
+			Stack.push(p);
+			fl = 1;
+		}
+		if (eq[i] == ')')
+		{
+			if (Stack.size() == 0)
+			{
+				cerr << "\nError ()";
+				return 0;
+			}
+			bool flag = true;
+			while (Stack.size() > 0)
+			{
+				if (Stack.top().oper != '(')
+				{
+					Queue.push(Stack.top());
+					Stack.pop();
+				}
+				else {
+					Stack.pop();
+					flag = false;
+					break;
+				}
+			}
+			if (flag)
+			{
+				cerr << "\nError ()";
+				return 0;
+			}
+			fl = 0;
+		}
+		//синус
+		if (eq[i] == 's')
+		{
+			if (eq[i + 1] == 'i' && eq[i + 2] == 'n')
+			{
+				p.oper = 's';
+				i += 2;
+				Stack.push(p);
+			}
+			else { cout << "Error (sin)." << endl; return 0; }
+		}
+		//тангенс
+		if (eq[i] == 't')
+		{
+			if (eq[i + 1] == 'g')
+			{
+				p.oper = 'T';
+				i++;
+				Stack.push(p);
+			}
+			else { cout << "Error (tg)." << endl; return 0; }
+		}
+		//exp
+		if (eq[i] == 'e')
+		{
+			if (eq[i + 1] == 'x' && eq[i + 2] == 'p')
+			{
+				p.oper = 'e';
+				i += 2;
+				Stack.push(p);
+			}
+			else { cout << "Error (exp)." << endl; return 0; }
+		}
+		//cos ctg
+		if (eq[i] == 'c')
+		{
+			if (eq[i + 1] == 'o' && eq[i + 2] == 's')
+			{
+				p.oper = 'c';
+				i += 2;
+				Stack.push(p);
+			}
+			else {
+				if (eq[i + 1] == 't' && eq[i + 2] == 'g')
+				{
+					p.oper = 'C';
+					i += 2;
+					Stack.push(p);
+				}
+				else {
+					cout << "Error (cos/ctg)." << endl; return 0;
+				}
+			}
+		}
+		//x
+		if ((eq[i] == 'x') && (eq[i - 1] != 'e') && (eq[i + 1] != 'p'))
+			{
+				p.val = x;
+				p.oper = 0;
+				Queue.push(p);
+				fl = 0;
+			}
+		}
+		//из стека остатки в очередь
+		while (Stack.size() > 0)
+		{
+			Queue.push(Stack.top());
+			Stack.pop();
+		}
+		
+		while (Queue.size() > 0)
+		{
+			
+			if (Queue.front().oper == 0) //если число
+			{
+				Stack.push(Queue.front());
+				Queue.pop();
+			}
+			else
+			{
+				
+				if (Stack.size() == 0)
+				{
+					cout << "Error.  "; return 0;
+				}
+				if (Stack.top().oper)
+				{
+					cout << "Error. "; return 0;
+				}
+				double a, b, rez;
+				//для унарных операций
+				if (Queue.front().oper == 'e' || Queue.front().oper == 'T' || Queue.front().oper == 'C' || Queue.front().oper == 's' || Queue.front().oper == 'c')
+				{
+					
+					a = Stack.top().val;
+					Stack.pop();					
+					switch (Queue.front().oper)
+					{
+					case 'e': rez = exp(a); break;
+					case 's': rez = sin(a);  break;
+					case 'c': rez = cos(a);  break;
+					case 'T': rez = tan(a);  break;
+					case 'C': rez = 1 / tan(a);  break;
+					}
+					
+					Queue.pop();
+					p.oper = 0;
+					p.val = rez;
+					Stack.push(p);
+					if (Queue.size() == 0) break;
+				}
+				//для бинарных
+				if (Queue.front().oper == '+' || Queue.front().oper == '/' || Queue.front().oper == '*' || Queue.front().oper == '-')
+				{
+					
+					a = Stack.top().val;
+					Stack.pop();
+					if (Stack.size() == 0)
+					{
+						cout << "Error. "; return 0;
+					}
+					if (Stack.top().oper)
+					{
+						cout << "Error. "; return 0;
+					}
+					b = Stack.top().val;
+					Stack.pop();
+					switch (Queue.front().oper)
+					{
+					case '+': rez = b + a; break;
+					case '-': rez = b - a;  break;
+					case '*': rez = b * a;  break;
+					case '/': rez = b / a;  break;
+					}
+					Queue.pop();
+					p.oper = 0;
+					p.val = rez;
+					Stack.push(p);
+					if (Queue.size() == 0) break;
+				}
+				
+			}
+
+		}
+
+		cout << "\nrez=" << Stack.top().val;
+		return 0;
+	}
+
